@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로또 번호 생성기</title>
+  <style>
+    :root{--bg:#f7f9fc;--card:#fff;--accent:#2b7cff}
+    body{font-family: "Segoe UI", Roboto, "Noto Sans KR", sans-serif; background:var(--bg); margin:0; padding:32px; color:#111}
+    .wrap{max-width:680px;margin:0 auto;background:var(--card);box-shadow:0 6px 18px rgba(17,24,39,0.06);padding:28px;border-radius:12px}
+    h1{margin:0 0 12px;font-size:24px}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+    input[type=number]{width:80px;padding:6px;border-radius:6px;border:1px solid #ddd}
+    button{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.secondary{background:#6b7280}
+    #result{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+    .set{display:flex;gap:8px;align-items:center}
+    .ball{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;color:#fff;font-weight:700;font-size:16px}
+    .meta{font-size:13px;color:#374151;margin-top:8px}
+    footer{margin-top:18px;font-size:13px;color:#6b7280}
+    @media (max-width:520px){.ball{width:36px;height:36px;font-size:14px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>로또 번호 생성기</h1>
+    <div class="controls">
+      <label for="sets">세트 수:</label>
+      <input id="sets" type="number" min="1" max="10" value="1" />
+      <button id="generate">생성</button>
+      <button id="copy" class="secondary">복사</button>
+      <button id="reset" class="secondary">초기화</button>
+    </div>
+    <div id="result" aria-live="polite"></div>
+    <div class="meta">숫자는 1 ~ 45 사이에서 중복없이 6개를 무작위로 생성합니다. 필요하면 세트 수를 늘려 여러 조합을 한 번에 받으세요.</div>
+    <footer>만든이: GPT_Python 예제 — 파일을 브라우저에서 열면 바로 동작합니다.</footer>
+  </div>
+
+  <script>
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copy');
+    const resetBtn = document.getElementById('reset');
+    const resultEl = document.getElementById('result');
+    const setsInput = document.getElementById('sets');
+
+    function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min }
+
+    function makeOneSet(){
+      const nums = new Set();
+      while(nums.size < 6){ nums.add(randInt(1,45)) }
+      return Array.from(nums).sort((a,b)=>a-b)
+    }
+
+    function ballColor(n){
+      if(n<=10) return '#f59e0b' // 노랑~주황
+      if(n<=20) return '#ef4444' // 빨강
+      if(n<=30) return '#10b981' // 초록
+      if(n<=40) return '#3b82f6' // 파랑
+      return '#8b5cf6' // 보라
+    }
+
+    function renderSets(count){
+      resultEl.innerHTML='';
+      for(let i=0;i<count;i++){
+        const arr = makeOneSet();
+        const row = document.createElement('div'); row.className='set';
+        row.setAttribute('aria-label', `세트 ${i+1}: ${arr.join(' ')}`);
+        arr.forEach(n=>{
+          const s = document.createElement('span'); s.className='ball'; s.textContent = n; s.style.background = ballColor(n);
+          row.appendChild(s);
+        });
+        resultEl.appendChild(row);
+      }
+    }
+
+    generateBtn.addEventListener('click', ()=>{
+      let count = parseInt(setsInput.value) || 1;
+      count = Math.min(Math.max(count,1),10);
+      renderSets(count);
+    });
+
+    resetBtn.addEventListener('click', ()=>{ resultEl.innerHTML=''; setsInput.value='1' })
+
+    copyBtn.addEventListener('click', async ()=>{
+      if(!resultEl.innerText.trim()){ alert('먼저 번호를 생성하세요.'); return }
+      // 각 세트를 줄바꿈으로 복사
+      const text = Array.from(resultEl.querySelectorAll('.set')).map((row,idx)=>{
+        return `세트 ${idx+1}: ` + Array.from(row.querySelectorAll('.ball')).map(b=>b.textContent).join(', ')
+      }).join('\r\n')
+      try{
+        await navigator.clipboard.writeText(text);
+        alert('번호가 복사되었습니다.');
+      }catch(e){
+        // 대체 복사 방법
+        const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); alert('번호가 복사되었습니다. (대체 방법)') }catch(err){ alert('복사에 실패했습니다. 수동으로 복사하세요.'); }
+        ta.remove();
+      }
+    });
+
+    // Enter로 생성
+    setsInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ generateBtn.click() } });
+
+    // 페이지 로드 시 기본 한 세트 보이기
+    window.addEventListener('load', ()=>{ renderSets(1) });
+  </script>
+</body>
+</html>
